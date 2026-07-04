@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Events — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html" class="active">Events</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:0;">
+    <div class="field-label">Departmental &amp; student events</div>
+    <h1 style="font-size:2rem;">Upcoming events</h1>
+    <p class="lede">Workshops, guest talks, career fairs, and student activities.</p>
+  </section>
+
+  <section>
+    <div class="grid-3" id="events-grid" style="margin-top:0;">
+      <div class="feature"><p style="margin:0;">Loading events...</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Chuka Eng Hub is a student-run project, not an official university platform.</p>
+</footer>
+
+<script src="app.js"></script>
+<script>
+  async function loadEvents() {
+    const grid = document.getElementById("events-grid");
+    try {
+      const result = await callBackend("getEvents", {}, "GET");
+      if (!result.success || !result.rows || result.rows.length === 0) {
+        grid.innerHTML = `<div class="feature"><p style="margin:0;">No events published yet — check back soon.</p></div>`;
+        return;
+      }
+      grid.innerHTML = result.rows.map(r => `
+        <div class="feature">
+          <span class="num mono">${formatDate(r.date)}${r.time ? " · " + r.time : ""}</span>
+          <h3>${r.eventName || ""}</h3>
+          <p>${r.description || ""}</p>
+          <p style="margin-top:8px; opacity:0.8;">${r.location ? "📍 " + r.location : ""}</p>
+        </div>
+      `).join("");
+    } catch (err) {
+      grid.innerHTML = `<div class="feature"><p style="margin:0;">Couldn't load events right now.</p></div>`;
+    }
+  }
+  loadEvents();
+</script>
+</body>
+</html>
