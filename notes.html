@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes &amp; Documents — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="notes.html" class="active">Notes</a>
+      <a href="groups.html">Groups</a>
+      <a href="personnel.html">People</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:0;">
+    <div class="field-label">Shared by classmates &amp; admin</div>
+    <h1 style="font-size:2rem;">Notes &amp; past papers</h1>
+    <p class="lede">Lecture notes, past CATs, and reference material — organised by unit and year.</p>
+  </section>
+
+  <section>
+    <div class="panel">
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+        <input id="search-box" type="text" placeholder="Search by title or unit..." style="max-width:320px;">
+        <select id="year-filter" style="max-width:200px;">
+          <option value="">All years</option>
+          <option value="First Year">First Year</option>
+          <option value="Second Year">Second Year</option>
+          <option value="Third Year">Third Year</option>
+          <option value="Fourth Year">Fourth Year</option>
+          <option value="Fifth Year">Fifth Year</option>
+        </select>
+      </div>
+
+      <table id="docs-table">
+        <thead>
+          <tr><th>Title</th><th>Unit</th><th>Year</th><th>Description</th><th>Link</th></tr>
+        </thead>
+        <tbody id="docs-body">
+          <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Chuka Eng Hub is a student-run project, not an official university platform.</p>
+  <p class="support-note">Shared documents are hosted externally (e.g. Google Drive) — this page only links to them.</p>
+</footer>
+
+<script src="app.js"></script>
+<script>
+  let allDocs = [];
+
+  async function loadDocuments() {
+    const body = document.getElementById("docs-body");
+    try {
+      const result = await callBackend("getDocuments", {}, "GET");
+      allDocs = (result.success && result.rows) ? result.rows : [];
+      renderDocs();
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="5">Couldn't load documents right now.</td></tr>`;
+    }
+  }
+
+  function renderDocs() {
+    const body = document.getElementById("docs-body");
+    const search = document.getElementById("search-box").value.trim().toLowerCase();
+    const yearFilter = document.getElementById("year-filter").value;
+
+    let rows = allDocs;
+    if (search) {
+      rows = rows.filter(d =>
+        (d.title || "").toLowerCase().includes(search) ||
+        (d.unit || "").toLowerCase().includes(search)
+      );
+    }
+    if (yearFilter) {
+      rows = rows.filter(d => d.year === yearFilter);
+    }
+
+    if (rows.length === 0) {
+      body.innerHTML = `<tr><td colspan="5">No documents match yet.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map(d => `
+      <tr>
+        <td>${d.title || ""}</td>
+        <td class="unit-code">${d.unit || ""}</td>
+        <td>${d.year || ""}</td>
+        <td>${d.description || ""}</td>
+        <td><a class="btn btn-ghost" style="padding:6px 14px; font-size:13px;" href="${d.fileLink}" target="_blank" rel="noopener noreferrer">Open</a></td>
+      </tr>
+    `).join("");
+  }
+
+  document.getElementById("search-box").addEventListener("input", renderDocs);
+  document.getElementById("year-filter").addEventListener("change", renderDocs);
+
+  loadDocuments();
+</script>
+</body>
+</html>
