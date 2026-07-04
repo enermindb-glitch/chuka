@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join Group — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="notes.html">Notes</a>
+      <a href="groups.html">Groups</a>
+      <a href="personnel.html">People</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="panel" style="max-width:480px; margin:40px auto;">
+      <div id="loading">
+        <h2>Loading group...</h2>
+      </div>
+
+      <div id="group-info" style="display:none;">
+        <h2 id="group-name"></h2>
+        <p id="group-description" style="margin-top:0;"></p>
+        <div class="group-progress"><div class="group-progress-fill" id="progress-fill"></div></div>
+        <p id="member-count" style="font-size:13px;"></p>
+
+        <form id="join-form" style="margin-top:20px;">
+          <label for="j-name">Your name</label>
+          <input id="j-name" required type="text" placeholder="e.g. Wanjiku Mwangi">
+
+          <label for="j-email">Your email</label>
+          <input id="j-email" required type="email" placeholder="you@students.chuka.ac.ke">
+
+          <button class="btn btn-primary btn-block" type="submit">Join this group</button>
+          <div class="msg" id="join-msg"></div>
+        </form>
+      </div>
+
+      <div id="group-full" style="display:none;">
+        <h2>This group is full</h2>
+        <p>No more spots available right now. Check the <a href="groups.html">groups page</a> for other options, or start your own.</p>
+      </div>
+
+      <div id="group-error" style="display:none;">
+        <h2>Link not found</h2>
+        <p>This group link is invalid or no longer exists. <a href="groups.html">Browse groups</a> instead.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const token = new URLSearchParams(window.location.search).get("token");
+
+  async function loadGroup() {
+    if (!token) {
+      showState("group-error");
+      return;
+    }
+    try {
+      const result = await callBackend("getGroupInfo", { token }, "GET");
+      if (!result.success) {
+        showState("group-error");
+        return;
+      }
+      if (result.isFull) {
+        showState("group-full");
+        return;
+      }
+      document.getElementById("group-name").textContent = result.groupName;
+      document.getElementById("group-description").textContent = result.description || "";
+      const pct = Math.round((result.memberCount / result.maxMembers) * 100);
+      document.getElementById("progress-fill").style.width = pct + "%";
+      document.getElementById("member-count").textContent = `${result.memberCount} / ${result.maxMembers} members`;
+      showState("group-info");
+    } catch (err) {
+      showState("group-error");
+    }
+  }
+
+  function showState(id) {
+    ["loading", "group-info", "group-full", "group-error"].forEach(s => {
+      document.getElementById(s).style.display = s === id ? "block" : "none";
+    });
+  }
+
+  document.getElementById("join-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("join-msg");
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "Joining...";
+
+    const result = await callBackend("joinGroup", {
+      token,
+      name: document.getElementById("j-name").value.trim(),
+      email: document.getElementById("j-email").value.trim()
+    });
+
+    btn.disabled = false;
+    btn.textContent = "Join this group";
+
+    if (result.success) {
+      showMsg(msg, `You're in! ${result.memberCount} / ${result.maxMembers} members now.`, true);
+      e.target.style.display = "none";
+    } else {
+      showMsg(msg, result.error || "Couldn't join the group.", false);
+    }
+  });
+
+  loadGroup();
+</script>
+</body>
+</html>
