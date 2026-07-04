@@ -18,7 +18,9 @@
       <a href="index.html">Register</a>
       <a href="timetable.html" class="active">Timetable</a>
       <a href="events.html">Events</a>
-      <a href="projects.html">Projects</a>
+      <a href="notes.html">Notes</a>
+      <a href="groups.html">Groups</a>
+      <a href="personnel.html">People</a>
       <a href="admin.html">Admin</a>
     </nav>
   </div>
@@ -28,11 +30,24 @@
   <section class="hero" style="padding-bottom:0;">
     <div class="field-label">Live — updated by department admin</div>
     <h1 style="font-size:2rem;">Class &amp; exam timetable</h1>
-    <p class="lede">Public view. Registered members with reminders activated get an email before each entry below.</p>
+    <p class="lede">Public view. Members with reminders activated get an email for today's classes each morning, and for exams coming up in the next 48 hours.</p>
   </section>
 
   <section>
     <div class="panel">
+      <h2 style="margin-bottom:4px;">Weekly class timetable</h2>
+      <p style="margin-top:0; font-size:14px;">Repeats every week — Monday to Saturday.</p>
+      <table id="class-table">
+        <thead>
+          <tr><th>Day</th><th>Unit code</th><th>Unit name</th><th>Time</th><th>Venue</th><th>Lecturer</th></tr>
+        </thead>
+        <tbody id="class-body">
+          <tr><td colspan="6">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="margin-top:24px;">
       <h2 style="margin-bottom:4px;">Exam timetable</h2>
       <p style="margin-top:0; font-size:14px;">Sorted by date.</p>
       <table id="exam-table">
@@ -53,7 +68,30 @@
 
 <script src="app.js"></script>
 <script>
-  async function loadTimetable() {
+  async function loadClassTimetable() {
+    const body = document.getElementById("class-body");
+    try {
+      const result = await callBackend("getClassTimetable", {}, "GET");
+      if (!result.success || !result.rows || result.rows.length === 0) {
+        body.innerHTML = `<tr><td colspan="6">No class timetable published yet.</td></tr>`;
+        return;
+      }
+      body.innerHTML = result.rows.map(r => `
+        <tr>
+          <td>${r.day || ""}</td>
+          <td class="unit-code">${r.unitCode || ""}</td>
+          <td>${r.unitName || ""}</td>
+          <td class="mono">${r.time || ""}</td>
+          <td>${r.venue || ""}</td>
+          <td>${r.lecturer || ""}</td>
+        </tr>
+      `).join("");
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="6">Couldn't load the class timetable right now.</td></tr>`;
+    }
+  }
+
+  async function loadExamTimetable() {
     const body = document.getElementById("exam-body");
     try {
       const result = await callBackend("getTimetable", {}, "GET");
@@ -72,10 +110,12 @@
         </tr>
       `).join("");
     } catch (err) {
-      body.innerHTML = `<tr><td colspan="6">Couldn't load the timetable right now.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="6">Couldn't load the exam timetable right now.</td></tr>`;
     }
   }
-  loadTimetable();
+
+  loadClassTimetable();
+  loadExamTimetable();
 </script>
 </body>
 </html>
