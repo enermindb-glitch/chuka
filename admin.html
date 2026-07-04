@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -19,7 +18,9 @@
       <a href="index.html">Register</a>
       <a href="timetable.html">Timetable</a>
       <a href="events.html">Events</a>
-      <a href="projects.html">Projects</a>
+      <a href="notes.html">Notes</a>
+      <a href="groups.html">Groups</a>
+      <a href="personnel.html">People</a>
       <a href="admin.html" class="active">Admin</a>
     </nav>
   </div>
@@ -30,15 +31,24 @@
   <section id="signin-section" class="hero" style="padding-bottom:0;">
     <div class="field-label">Restricted area</div>
     <h1 style="font-size:2rem;">Admin sign-in</h1>
-    <p class="lede">Sign in with the Google account authorised as an admin.</p>
-    <div id="g_id_signin" style="margin-top:20px;"></div>
-    <div class="msg" id="signin-msg"></div>
+    <p class="lede">Enter the admin password to manage announcements, the exam timetable, and events.</p>
+
+    <div class="panel" style="max-width:420px; margin-top:20px;">
+      <form id="password-form">
+        <label for="admin-password">Password</label>
+        <input id="admin-password" type="password" required autocomplete="current-password">
+        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+        <div class="msg" id="signin-msg"></div>
+      </form>
+    </div>
   </section>
 
   <section id="admin-section" style="display:none;">
-    <p style="color:rgba(237,242,251,0.75);">Signed in as <strong id="admin-email" class="mono"></strong></p>
+    <p style="color:rgba(237,242,251,0.75);">Signed in as admin.
+      <button id="logout-btn" class="btn-ghost" style="border:none; text-decoration:underline; background:none; cursor:pointer; padding:0; color:inherit; font-family:inherit;">Sign out</button>
+    </p>
 
-    <div class="two-col" style="align-items:stretch;">
+    <div class="grid-3" style="align-items:stretch; margin-top:24px;">
 
       <div class="panel">
         <h2>Post an announcement</h2>
@@ -51,6 +61,41 @@
 
           <button class="btn btn-primary btn-block" type="submit">Send announcement now</button>
           <div class="msg" id="announcement-msg"></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Add class timetable entry</h2>
+        <p style="margin-top:0; font-size:13px;">Repeats weekly on the selected day.</p>
+        <form id="class-form">
+          <label for="c-day">Day</label>
+          <select id="c-day" required>
+            <option value="" disabled selected>Select day</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+          </select>
+
+          <label for="c-code">Unit code</label>
+          <input id="c-code" required type="text" placeholder="e.g. EEE 2201">
+
+          <label for="c-name">Unit name</label>
+          <input id="c-name" required type="text" placeholder="e.g. Circuit Theory II">
+
+          <label for="c-time">Time</label>
+          <input id="c-time" required type="time">
+
+          <label for="c-venue">Venue</label>
+          <input id="c-venue" required type="text" placeholder="e.g. ETB 3">
+
+          <label for="c-lecturer">Lecturer (optional)</label>
+          <input id="c-lecturer" type="text" placeholder="e.g. Dr. Kamau">
+
+          <button class="btn btn-primary btn-block" type="submit">Add to class timetable</button>
+          <div class="msg" id="class-msg"></div>
         </form>
       </div>
 
@@ -103,10 +148,6 @@
             <label for="ev-description">Description</label>
             <textarea id="ev-description" required placeholder="Short description shown on the events page."></textarea>
 
-            <label for="ev-image">Event image (optional)</label>
-            <input id="ev-image" type="file" accept="image/*">
-            <img id="ev-image-preview" class="image-preview" alt="Preview of selected image" style="display:none;">
-
             <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
               <input type="checkbox" id="ev-notify" style="width:auto;">
               <span style="font-weight:500;">Email activated members about this event</span>
@@ -117,33 +158,75 @@
         <div class="msg" id="event-msg"></div>
       </form>
     </div>
-
     <div class="panel" style="margin-top:24px;">
-      <h2>Add project</h2>
-      <p style="margin-top:-8px;">Showcase a student project — appears on the public Projects page, newest first.</p>
-      <form id="project-form">
+      <h2>Add note / document</h2>
+      <p style="margin-top:0;">Host the actual file on Google Drive (set sharing to "Anyone with the link can view"), then paste that link below — only the link and details are stored here.</p>
+      <form id="document-form">
         <div class="two-col">
           <div>
-            <label for="p-name">Project name</label>
-            <input id="p-name" required type="text" placeholder="e.g. Solar-Powered Water Pump">
+            <label for="d-title">Title</label>
+            <input id="d-title" required type="text" placeholder="e.g. Circuit Theory II — CAT 1 2025">
 
-            <label for="p-authors">Author(s)</label>
-            <input id="p-authors" type="text" placeholder="e.g. Wanjiku Mwangi, John Kamau">
+            <label for="d-unit">Unit</label>
+            <input id="d-unit" type="text" placeholder="e.g. EEE 2201">
 
-            <label for="p-link">Link (optional)</label>
-            <input id="p-link" type="url" placeholder="e.g. GitHub repo, report, or demo video URL">
+            <label for="d-year">Year</label>
+            <select id="d-year">
+              <option value="">Not year-specific</option>
+              <option value="First Year">First Year</option>
+              <option value="Second Year">Second Year</option>
+              <option value="Third Year">Third Year</option>
+              <option value="Fourth Year">Fourth Year</option>
+              <option value="Fifth Year">Fifth Year</option>
+            </select>
           </div>
           <div>
-            <label for="p-description">Description</label>
-            <textarea id="p-description" required placeholder="What the project does, tools used, outcomes."></textarea>
+            <label for="d-description">Description</label>
+            <textarea id="d-description" placeholder="Short description shown on the notes page."></textarea>
 
-            <label for="p-image">Project image (optional)</label>
-            <input id="p-image" type="file" accept="image/*">
-            <img id="p-image-preview" class="image-preview" alt="Preview of selected image" style="display:none;">
+            <label for="d-link">File link (Google Drive, etc.)</label>
+            <input id="d-link" required type="url" placeholder="https://drive.google.com/...">
           </div>
         </div>
-        <button class="btn btn-primary btn-block" type="submit">Publish project</button>
-        <div class="msg" id="project-msg"></div>
+        <button class="btn btn-primary btn-block" type="submit">Publish document</button>
+        <div class="msg" id="document-msg"></div>
+      </form>
+    </div>
+    <div class="panel" style="margin-top:24px;">
+      <h2>Add leadership / lecturer</h2>
+      <p style="margin-top:0;">Host the photo on Google Drive or any public image host, then paste the direct image link below.</p>
+      <form id="personnel-form">
+        <div class="two-col">
+          <div>
+            <label for="p-name">Name</label>
+            <input id="p-name" required type="text" placeholder="e.g. Dr. Kamau">
+
+            <label for="p-role">Role / title</label>
+            <input id="p-role" required type="text" placeholder="e.g. Class President / Lecturer, Circuit Theory II">
+
+            <label for="p-category">Category</label>
+            <select id="p-category" required>
+              <option value="" disabled selected>Select category</option>
+              <option value="Leadership">Class Leadership</option>
+              <option value="Lecturer">Lecturer</option>
+            </select>
+
+            <label for="p-photo">Photo URL (optional)</label>
+            <input id="p-photo" type="url" placeholder="https://...">
+          </div>
+          <div>
+            <label for="p-email">Email (optional)</label>
+            <input id="p-email" type="email" placeholder="name@chuka.ac.ke">
+
+            <label for="p-phone">Phone (optional)</label>
+            <input id="p-phone" type="text" placeholder="e.g. 07XX XXX XXX">
+
+            <label for="p-details">Office / other details (optional)</label>
+            <textarea id="p-details" placeholder="e.g. Office: ETB 210, Consultation hours: Tue 2-4pm"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Add to directory</button>
+        <div class="msg" id="personnel-msg"></div>
       </form>
     </div>
   </section>
@@ -152,37 +235,38 @@
 
 <script src="app.js"></script>
 <script>
-  /* ---- CONFIG: paste your Google OAuth Client ID (from Google Cloud Console) ---- */
-  const GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com";
+  let adminPassword = null;
 
-  let idToken = null;
+  // Restore session for this tab only (cleared on close) so a refresh
+  // doesn't force re-entering the password every time.
+  adminPassword = sessionStorage.getItem("cehAdminPw");
+  if (adminPassword) showAdminSection();
 
-  window.onload = () => {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      document.getElementById("g_id_signin"),
-      { theme: "outline", size: "large" }
-    );
-  };
-
-  async function handleCredentialResponse(response) {
-    idToken = response.credential;
+  document.getElementById("password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const msg = document.getElementById("signin-msg");
-    try {
-      const result = await callBackend("verifyAdmin", { idToken });
-      if (result.success) {
-        document.getElementById("signin-section").style.display = "none";
-        document.getElementById("admin-section").style.display = "block";
-        document.getElementById("admin-email").textContent = result.email;
-      } else {
-        showMsg(msg, result.error || "This account is not authorised as an admin.", false);
-      }
-    } catch (err) {
-      showMsg(msg, "Couldn't verify sign-in. Try again.", false);
+    const pw = document.getElementById("admin-password").value;
+    const result = await callBackend("verifyAdmin", { password: pw });
+    if (result.success) {
+      adminPassword = pw;
+      sessionStorage.setItem("cehAdminPw", pw);
+      showAdminSection();
+    } else {
+      showMsg(msg, result.error || "Incorrect password.", false);
     }
+  });
+
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    sessionStorage.removeItem("cehAdminPw");
+    adminPassword = null;
+    document.getElementById("admin-section").style.display = "none";
+    document.getElementById("signin-section").style.display = "block";
+    document.getElementById("admin-password").value = "";
+  });
+
+  function showAdminSection() {
+    document.getElementById("signin-section").style.display = "none";
+    document.getElementById("admin-section").style.display = "block";
   }
 
   // ---- Announcement ----
@@ -190,11 +274,28 @@
     e.preventDefault();
     const msg = document.getElementById("announcement-msg");
     const result = await callBackend("postAnnouncement", {
-      idToken,
+      password: adminPassword,
       title: document.getElementById("a-title").value.trim(),
       body: document.getElementById("a-body").value.trim()
     });
     showMsg(msg, result.success ? "Announcement sent." : (result.error || "Failed to send."), result.success);
+    if (result.success) e.target.reset();
+  });
+
+  // ---- Class timetable ----
+  document.getElementById("class-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("class-msg");
+    const result = await callBackend("addClassEntry", {
+      password: adminPassword,
+      day: document.getElementById("c-day").value,
+      unitCode: document.getElementById("c-code").value.trim(),
+      unitName: document.getElementById("c-name").value.trim(),
+      time: document.getElementById("c-time").value,
+      venue: document.getElementById("c-venue").value.trim(),
+      lecturer: document.getElementById("c-lecturer").value.trim()
+    });
+    showMsg(msg, result.success ? "Added to class timetable." : (result.error || "Failed to add."), result.success);
     if (result.success) e.target.reset();
   });
 
@@ -203,7 +304,7 @@
     e.preventDefault();
     const msg = document.getElementById("exam-msg");
     const result = await callBackend("addExamEntry", {
-      idToken,
+      password: adminPassword,
       unitCode: document.getElementById("e-code").value.trim(),
       unitName: document.getElementById("e-name").value.trim(),
       date: document.getElementById("e-date").value,
@@ -215,127 +316,55 @@
     if (result.success) e.target.reset();
   });
 
-  // ---- Image upload helper (shared by Event and Project forms) ----
-  const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB, must match Projects.gs
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = () => reject(new Error("Couldn't read the image file."));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function uploadImageIfSelected(fileInput) {
-    const file = fileInput.files[0];
-    if (!file) return "";
-    if (file.size > MAX_IMAGE_BYTES) {
-      throw new Error("Image must be under 8MB.");
-    }
-    const imageData = await fileToBase64(file);
-    const result = await callBackend("uploadImage", {
-      idToken, imageData, mimeType: file.type, filename: file.name
-    });
-    if (!result.success) throw new Error(result.error || "Image upload failed.");
-    return result.imageUrl;
-  }
-
-  // Shows a local preview of the selected image immediately (before any
-  // upload happens), and clears it again after a successful publish.
-  function setupImagePreview(fileInputId, previewImgId, msgId) {
-    const fileInput = document.getElementById(fileInputId);
-    const preview = document.getElementById(previewImgId);
-    const msg = document.getElementById(msgId);
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        preview.style.display = "none";
-        preview.src = "";
-        return;
-      }
-      if (file.size > MAX_IMAGE_BYTES) {
-        showMsg(msg, "Image must be under 8MB — please choose a smaller file.", false);
-        fileInput.value = "";
-        preview.style.display = "none";
-        preview.src = "";
-        return;
-      }
-      preview.src = URL.createObjectURL(file);
-      preview.style.display = "block";
-    });
-    return () => { preview.style.display = "none"; preview.src = ""; };
-  }
-
-  const clearEventPreview = setupImagePreview("ev-image", "ev-image-preview", "event-msg");
-  const clearProjectPreview = setupImagePreview("p-image", "p-image-preview", "project-msg");
-
   // ---- Event ----
   document.getElementById("event-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("event-msg");
-    const submitBtn = e.target.querySelector("button[type=submit]");
-    const originalLabel = submitBtn.textContent;
-    submitBtn.disabled = true;
-    try {
-      let imageUrl = "";
-      const fileInput = document.getElementById("ev-image");
-      if (fileInput.files[0]) {
-        submitBtn.textContent = "Uploading image...";
-        imageUrl = await uploadImageIfSelected(fileInput);
-      }
-      submitBtn.textContent = "Publishing...";
-      const result = await callBackend("addEvent", {
-        idToken,
-        eventName: document.getElementById("ev-name").value.trim(),
-        date: document.getElementById("ev-date").value,
-        time: document.getElementById("ev-time").value,
-        location: document.getElementById("ev-location").value.trim(),
-        description: document.getElementById("ev-description").value.trim(),
-        imageUrl,
-        notifyMembers: document.getElementById("ev-notify").checked
-      });
-      showMsg(msg, result.success ? "Event published." : (result.error || "Failed to publish."), result.success);
-      if (result.success) { e.target.reset(); clearEventPreview(); }
-    } catch (err) {
-      showMsg(msg, err.message || "Failed to publish.", false);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalLabel;
-    }
+    const result = await callBackend("addEvent", {
+      password: adminPassword,
+      eventName: document.getElementById("ev-name").value.trim(),
+      date: document.getElementById("ev-date").value,
+      time: document.getElementById("ev-time").value,
+      location: document.getElementById("ev-location").value.trim(),
+      description: document.getElementById("ev-description").value.trim(),
+      notifyMembers: document.getElementById("ev-notify").checked
+    });
+    showMsg(msg, result.success ? "Event published." : (result.error || "Failed to publish."), result.success);
+    if (result.success) e.target.reset();
   });
 
-  // ---- Project ----
-  document.getElementById("project-form").addEventListener("submit", async (e) => {
+  // ---- Document ----
+  document.getElementById("document-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const msg = document.getElementById("project-msg");
-    const submitBtn = e.target.querySelector("button[type=submit]");
-    const originalLabel = submitBtn.textContent;
-    submitBtn.disabled = true;
-    try {
-      let imageUrl = "";
-      const fileInput = document.getElementById("p-image");
-      if (fileInput.files[0]) {
-        submitBtn.textContent = "Uploading image...";
-        imageUrl = await uploadImageIfSelected(fileInput);
-      }
-      submitBtn.textContent = "Publishing...";
-      const result = await callBackend("addProject", {
-        idToken,
-        projectName: document.getElementById("p-name").value.trim(),
-        authors: document.getElementById("p-authors").value.trim(),
-        description: document.getElementById("p-description").value.trim(),
-        link: document.getElementById("p-link").value.trim(),
-        imageUrl
-      });
-      showMsg(msg, result.success ? "Project published." : (result.error || "Failed to publish."), result.success);
-      if (result.success) { e.target.reset(); clearProjectPreview(); }
-    } catch (err) {
-      showMsg(msg, err.message || "Failed to publish.", false);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalLabel;
-    }
+    const msg = document.getElementById("document-msg");
+    const result = await callBackend("addDocument", {
+      password: adminPassword,
+      title: document.getElementById("d-title").value.trim(),
+      unit: document.getElementById("d-unit").value.trim(),
+      year: document.getElementById("d-year").value,
+      description: document.getElementById("d-description").value.trim(),
+      fileLink: document.getElementById("d-link").value.trim()
+    });
+    showMsg(msg, result.success ? "Document published." : (result.error || "Failed to publish."), result.success);
+    if (result.success) e.target.reset();
+  });
+
+  // ---- Personnel ----
+  document.getElementById("personnel-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("personnel-msg");
+    const result = await callBackend("addPersonnel", {
+      password: adminPassword,
+      name: document.getElementById("p-name").value.trim(),
+      role: document.getElementById("p-role").value.trim(),
+      category: document.getElementById("p-category").value,
+      photoUrl: document.getElementById("p-photo").value.trim(),
+      email: document.getElementById("p-email").value.trim(),
+      phone: document.getElementById("p-phone").value.trim(),
+      officeOrDetails: document.getElementById("p-details").value.trim()
+    });
+    showMsg(msg, result.success ? "Added to directory." : (result.error || "Failed to add."), result.success);
+    if (result.success) e.target.reset();
   });
 </script>
 </body>
