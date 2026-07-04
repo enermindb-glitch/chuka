@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment status — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="panel" style="max-width:520px; margin:40px auto; text-align:center;">
+      <div id="loading">
+        <h2>Checking your payment...</h2>
+        <p>This takes a few seconds — please don't close this page.</p>
+      </div>
+      <div id="ok" style="display:none;">
+        <h2>You're activated 🎉</h2>
+        <p>Automatic reminders, announcements, and check-ins are now switched on for your account.</p>
+        <a class="btn btn-primary" href="index.html">Back to home</a>
+      </div>
+      <div id="fail" style="display:none;">
+        <h2>Payment not confirmed yet</h2>
+        <p>If you completed the M-Pesa prompt, this can take a minute to reflect. You can also try again below.</p>
+        <a class="btn btn-ghost" href="index.html">Back to home</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+  // Pesapal redirects back here with ?OrderTrackingId=...&OrderMerchantReference=...
+  const params = new URLSearchParams(window.location.search);
+  const orderTrackingId = params.get("OrderTrackingId");
+
+  async function checkStatus() {
+    if (!orderTrackingId) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("fail").style.display = "block";
+      return;
+    }
+    try {
+      const result = await callBackend("checkPaymentStatus", { orderTrackingId }, "GET");
+      document.getElementById("loading").style.display = "none";
+      if (result.success && result.status === "COMPLETED") {
+        document.getElementById("ok").style.display = "block";
+      } else {
+        document.getElementById("fail").style.display = "block";
+      }
+    } catch (err) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("fail").style.display = "block";
+    }
+  }
+
+  checkStatus();
+</script>
+</body>
+</html>
