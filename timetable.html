@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timetable — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html" class="active">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:0;">
+    <div class="field-label">Live — updated by department admin</div>
+    <h1 style="font-size:2rem;">Class &amp; exam timetable</h1>
+    <p class="lede">Public view. Registered members with reminders activated get an email before each entry below.</p>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2 style="margin-bottom:4px;">Exam timetable</h2>
+      <p style="margin-top:0; font-size:14px;">Sorted by date.</p>
+      <table id="exam-table">
+        <thead>
+          <tr><th>Unit code</th><th>Unit name</th><th>Date</th><th>Time</th><th>Venue</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="exam-body">
+          <tr><td colspan="6">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Chuka Eng Hub is a student-run project, not an official university platform.</p>
+</footer>
+
+<script src="app.js"></script>
+<script>
+  async function loadTimetable() {
+    const body = document.getElementById("exam-body");
+    try {
+      const result = await callBackend("getTimetable", {}, "GET");
+      if (!result.success || !result.rows || result.rows.length === 0) {
+        body.innerHTML = `<tr><td colspan="6">No exam entries published yet.</td></tr>`;
+        return;
+      }
+      body.innerHTML = result.rows.map(r => `
+        <tr>
+          <td class="unit-code">${r.unitCode || ""}</td>
+          <td>${r.unitName || ""}</td>
+          <td class="mono">${formatDate(r.date)}</td>
+          <td class="mono">${r.time || ""}</td>
+          <td>${r.venue || ""}</td>
+          <td>${r.notes || ""}</td>
+        </tr>
+      `).join("");
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="6">Couldn't load the timetable right now.</td></tr>`;
+    }
+  }
+  loadTimetable();
+</script>
+</body>
+</html>
