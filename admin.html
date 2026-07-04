@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Chuka Eng Hub</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub — Admin</span>
+    </div>
+    <nav>
+      <a href="index.html">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="admin.html" class="active">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="signin-section" class="hero" style="padding-bottom:0;">
+    <div class="field-label">Restricted area</div>
+    <h1 style="font-size:2rem;">Admin sign-in</h1>
+    <p class="lede">Sign in with the Google account authorised as an admin.</p>
+    <div id="g_id_signin" style="margin-top:20px;"></div>
+    <div class="msg" id="signin-msg"></div>
+  </section>
+
+  <section id="admin-section" style="display:none;">
+    <p style="color:rgba(237,242,251,0.75);">Signed in as <strong id="admin-email" class="mono"></strong></p>
+
+    <div class="two-col" style="align-items:stretch;">
+
+      <div class="panel">
+        <h2>Post an announcement</h2>
+        <form id="announcement-form">
+          <label for="a-title">Title</label>
+          <input id="a-title" required type="text" placeholder="e.g. CAT 2 postponed">
+
+          <label for="a-body">Message</label>
+          <textarea id="a-body" required placeholder="Full announcement text sent to all activated members."></textarea>
+
+          <button class="btn btn-primary btn-block" type="submit">Send announcement now</button>
+          <div class="msg" id="announcement-msg"></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Add exam timetable entry</h2>
+        <form id="exam-form">
+          <label for="e-code">Unit code</label>
+          <input id="e-code" required type="text" placeholder="e.g. EEE 2201">
+
+          <label for="e-name">Unit name</label>
+          <input id="e-name" required type="text" placeholder="e.g. Circuit Theory II">
+
+          <label for="e-date">Date</label>
+          <input id="e-date" required type="date">
+
+          <label for="e-time">Time</label>
+          <input id="e-time" required type="time">
+
+          <label for="e-venue">Venue</label>
+          <input id="e-venue" required type="text" placeholder="e.g. ETB 3">
+
+          <label for="e-notes">Notes (optional)</label>
+          <input id="e-notes" type="text" placeholder="e.g. Bring calculator">
+
+          <button class="btn btn-primary btn-block" type="submit">Add to timetable</button>
+          <div class="msg" id="exam-msg"></div>
+        </form>
+      </div>
+
+    </div>
+
+    <div class="panel" style="margin-top:24px;">
+      <h2>Add event</h2>
+      <form id="event-form">
+        <div class="two-col">
+          <div>
+            <label for="ev-name">Event name</label>
+            <input id="ev-name" required type="text" placeholder="e.g. Engineering Career Fair">
+
+            <label for="ev-date">Date</label>
+            <input id="ev-date" required type="date">
+
+            <label for="ev-time">Time (optional)</label>
+            <input id="ev-time" type="time">
+          </div>
+          <div>
+            <label for="ev-location">Location</label>
+            <input id="ev-location" required type="text" placeholder="e.g. ETB Grounds">
+
+            <label for="ev-description">Description</label>
+            <textarea id="ev-description" required placeholder="Short description shown on the events page."></textarea>
+
+            <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+              <input type="checkbox" id="ev-notify" style="width:auto;">
+              <span style="font-weight:500;">Email activated members about this event</span>
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Publish event</button>
+        <div class="msg" id="event-msg"></div>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  /* ---- CONFIG: paste your Google OAuth Client ID (from Google Cloud Console) ---- */
+  const GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com";
+
+  let idToken = null;
+
+  window.onload = () => {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(
+      document.getElementById("g_id_signin"),
+      { theme: "outline", size: "large" }
+    );
+  };
+
+  async function handleCredentialResponse(response) {
+    idToken = response.credential;
+    const msg = document.getElementById("signin-msg");
+    try {
+      const result = await callBackend("verifyAdmin", { idToken });
+      if (result.success) {
+        document.getElementById("signin-section").style.display = "none";
+        document.getElementById("admin-section").style.display = "block";
+        document.getElementById("admin-email").textContent = result.email;
+      } else {
+        showMsg(msg, result.error || "This account is not authorised as an admin.", false);
+      }
+    } catch (err) {
+      showMsg(msg, "Couldn't verify sign-in. Try again.", false);
+    }
+  }
+
+  // ---- Announcement ----
+  document.getElementById("announcement-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("announcement-msg");
+    const result = await callBackend("postAnnouncement", {
+      idToken,
+      title: document.getElementById("a-title").value.trim(),
+      body: document.getElementById("a-body").value.trim()
+    });
+    showMsg(msg, result.success ? "Announcement sent." : (result.error || "Failed to send."), result.success);
+    if (result.success) e.target.reset();
+  });
+
+  // ---- Exam timetable ----
+  document.getElementById("exam-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("exam-msg");
+    const result = await callBackend("addExamEntry", {
+      idToken,
+      unitCode: document.getElementById("e-code").value.trim(),
+      unitName: document.getElementById("e-name").value.trim(),
+      date: document.getElementById("e-date").value,
+      time: document.getElementById("e-time").value,
+      venue: document.getElementById("e-venue").value.trim(),
+      notes: document.getElementById("e-notes").value.trim()
+    });
+    showMsg(msg, result.success ? "Added to timetable." : (result.error || "Failed to add."), result.success);
+    if (result.success) e.target.reset();
+  });
+
+  // ---- Event ----
+  document.getElementById("event-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("event-msg");
+    const result = await callBackend("addEvent", {
+      idToken,
+      eventName: document.getElementById("ev-name").value.trim(),
+      date: document.getElementById("ev-date").value,
+      time: document.getElementById("ev-time").value,
+      location: document.getElementById("ev-location").value.trim(),
+      description: document.getElementById("ev-description").value.trim(),
+      notifyMembers: document.getElementById("ev-notify").checked
+    });
+    showMsg(msg, result.success ? "Event published." : (result.error || "Failed to publish."), result.success);
+    if (result.success) e.target.reset();
+  });
+</script>
+</body>
+</html>
