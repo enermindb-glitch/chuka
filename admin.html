@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -18,6 +19,7 @@
       <a href="index.html">Register</a>
       <a href="timetable.html">Timetable</a>
       <a href="events.html">Events</a>
+      <a href="projects.html">Projects</a>
       <a href="admin.html" class="active">Admin</a>
     </nav>
   </div>
@@ -28,22 +30,13 @@
   <section id="signin-section" class="hero" style="padding-bottom:0;">
     <div class="field-label">Restricted area</div>
     <h1 style="font-size:2rem;">Admin sign-in</h1>
-    <p class="lede">Enter the admin password to manage announcements, the exam timetable, and events.</p>
-
-    <div class="panel" style="max-width:420px; margin-top:20px;">
-      <form id="password-form">
-        <label for="admin-password">Password</label>
-        <input id="admin-password" type="password" required autocomplete="current-password">
-        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
-        <div class="msg" id="signin-msg"></div>
-      </form>
-    </div>
+    <p class="lede">Sign in with the Google account authorised as an admin.</p>
+    <div id="g_id_signin" style="margin-top:20px;"></div>
+    <div class="msg" id="signin-msg"></div>
   </section>
 
   <section id="admin-section" style="display:none;">
-    <p style="color:rgba(237,242,251,0.75);">Signed in as admin.
-      <button id="logout-btn" class="btn-ghost" style="border:none; text-decoration:underline; background:none; cursor:pointer; padding:0; color:inherit; font-family:inherit;">Sign out</button>
-    </p>
+    <p style="color:rgba(237,242,251,0.75);">Signed in as <strong id="admin-email" class="mono"></strong></p>
 
     <div class="two-col" style="align-items:stretch;">
 
@@ -110,6 +103,10 @@
             <label for="ev-description">Description</label>
             <textarea id="ev-description" required placeholder="Short description shown on the events page."></textarea>
 
+            <label for="ev-image">Event image (optional)</label>
+            <input id="ev-image" type="file" accept="image/*">
+            <img id="ev-image-preview" class="image-preview" alt="Preview of selected image" style="display:none;">
+
             <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
               <input type="checkbox" id="ev-notify" style="width:auto;">
               <span style="font-weight:500;">Email activated members about this event</span>
@@ -120,44 +117,72 @@
         <div class="msg" id="event-msg"></div>
       </form>
     </div>
+
+    <div class="panel" style="margin-top:24px;">
+      <h2>Add project</h2>
+      <p style="margin-top:-8px;">Showcase a student project — appears on the public Projects page, newest first.</p>
+      <form id="project-form">
+        <div class="two-col">
+          <div>
+            <label for="p-name">Project name</label>
+            <input id="p-name" required type="text" placeholder="e.g. Solar-Powered Water Pump">
+
+            <label for="p-authors">Author(s)</label>
+            <input id="p-authors" type="text" placeholder="e.g. Wanjiku Mwangi, John Kamau">
+
+            <label for="p-link">Link (optional)</label>
+            <input id="p-link" type="url" placeholder="e.g. GitHub repo, report, or demo video URL">
+          </div>
+          <div>
+            <label for="p-description">Description</label>
+            <textarea id="p-description" required placeholder="What the project does, tools used, outcomes."></textarea>
+
+            <label for="p-image">Project image (optional)</label>
+            <input id="p-image" type="file" accept="image/*">
+            <img id="p-image-preview" class="image-preview" alt="Preview of selected image" style="display:none;">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Publish project</button>
+        <div class="msg" id="project-msg"></div>
+      </form>
+    </div>
   </section>
 
 </main>
 
 <script src="app.js"></script>
 <script>
-  let adminPassword = null;
+  /* ---- CONFIG: paste your Google OAuth Client ID (from Google Cloud Console) ---- */
+  const GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com";
 
-  // Restore session for this tab only (cleared on close) so a refresh
-  // doesn't force re-entering the password every time.
-  adminPassword = sessionStorage.getItem("cehAdminPw");
-  if (adminPassword) showAdminSection();
+  let idToken = null;
 
-  document.getElementById("password-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  window.onload = () => {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(
+      document.getElementById("g_id_signin"),
+      { theme: "outline", size: "large" }
+    );
+  };
+
+  async function handleCredentialResponse(response) {
+    idToken = response.credential;
     const msg = document.getElementById("signin-msg");
-    const pw = document.getElementById("admin-password").value;
-    const result = await callBackend("verifyAdmin", { password: pw });
-    if (result.success) {
-      adminPassword = pw;
-      sessionStorage.setItem("cehAdminPw", pw);
-      showAdminSection();
-    } else {
-      showMsg(msg, result.error || "Incorrect password.", false);
+    try {
+      const result = await callBackend("verifyAdmin", { idToken });
+      if (result.success) {
+        document.getElementById("signin-section").style.display = "none";
+        document.getElementById("admin-section").style.display = "block";
+        document.getElementById("admin-email").textContent = result.email;
+      } else {
+        showMsg(msg, result.error || "This account is not authorised as an admin.", false);
+      }
+    } catch (err) {
+      showMsg(msg, "Couldn't verify sign-in. Try again.", false);
     }
-  });
-
-  document.getElementById("logout-btn").addEventListener("click", () => {
-    sessionStorage.removeItem("cehAdminPw");
-    adminPassword = null;
-    document.getElementById("admin-section").style.display = "none";
-    document.getElementById("signin-section").style.display = "block";
-    document.getElementById("admin-password").value = "";
-  });
-
-  function showAdminSection() {
-    document.getElementById("signin-section").style.display = "none";
-    document.getElementById("admin-section").style.display = "block";
   }
 
   // ---- Announcement ----
@@ -165,7 +190,7 @@
     e.preventDefault();
     const msg = document.getElementById("announcement-msg");
     const result = await callBackend("postAnnouncement", {
-      password: adminPassword,
+      idToken,
       title: document.getElementById("a-title").value.trim(),
       body: document.getElementById("a-body").value.trim()
     });
@@ -178,7 +203,7 @@
     e.preventDefault();
     const msg = document.getElementById("exam-msg");
     const result = await callBackend("addExamEntry", {
-      password: adminPassword,
+      idToken,
       unitCode: document.getElementById("e-code").value.trim(),
       unitName: document.getElementById("e-name").value.trim(),
       date: document.getElementById("e-date").value,
@@ -190,21 +215,127 @@
     if (result.success) e.target.reset();
   });
 
+  // ---- Image upload helper (shared by Event and Project forms) ----
+  const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB, must match Projects.gs
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = () => reject(new Error("Couldn't read the image file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadImageIfSelected(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return "";
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error("Image must be under 8MB.");
+    }
+    const imageData = await fileToBase64(file);
+    const result = await callBackend("uploadImage", {
+      idToken, imageData, mimeType: file.type, filename: file.name
+    });
+    if (!result.success) throw new Error(result.error || "Image upload failed.");
+    return result.imageUrl;
+  }
+
+  // Shows a local preview of the selected image immediately (before any
+  // upload happens), and clears it again after a successful publish.
+  function setupImagePreview(fileInputId, previewImgId, msgId) {
+    const fileInput = document.getElementById(fileInputId);
+    const preview = document.getElementById(previewImgId);
+    const msg = document.getElementById(msgId);
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        preview.style.display = "none";
+        preview.src = "";
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        showMsg(msg, "Image must be under 8MB — please choose a smaller file.", false);
+        fileInput.value = "";
+        preview.style.display = "none";
+        preview.src = "";
+        return;
+      }
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+    });
+    return () => { preview.style.display = "none"; preview.src = ""; };
+  }
+
+  const clearEventPreview = setupImagePreview("ev-image", "ev-image-preview", "event-msg");
+  const clearProjectPreview = setupImagePreview("p-image", "p-image-preview", "project-msg");
+
   // ---- Event ----
   document.getElementById("event-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("event-msg");
-    const result = await callBackend("addEvent", {
-      password: adminPassword,
-      eventName: document.getElementById("ev-name").value.trim(),
-      date: document.getElementById("ev-date").value,
-      time: document.getElementById("ev-time").value,
-      location: document.getElementById("ev-location").value.trim(),
-      description: document.getElementById("ev-description").value.trim(),
-      notifyMembers: document.getElementById("ev-notify").checked
-    });
-    showMsg(msg, result.success ? "Event published." : (result.error || "Failed to publish."), result.success);
-    if (result.success) e.target.reset();
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    try {
+      let imageUrl = "";
+      const fileInput = document.getElementById("ev-image");
+      if (fileInput.files[0]) {
+        submitBtn.textContent = "Uploading image...";
+        imageUrl = await uploadImageIfSelected(fileInput);
+      }
+      submitBtn.textContent = "Publishing...";
+      const result = await callBackend("addEvent", {
+        idToken,
+        eventName: document.getElementById("ev-name").value.trim(),
+        date: document.getElementById("ev-date").value,
+        time: document.getElementById("ev-time").value,
+        location: document.getElementById("ev-location").value.trim(),
+        description: document.getElementById("ev-description").value.trim(),
+        imageUrl,
+        notifyMembers: document.getElementById("ev-notify").checked
+      });
+      showMsg(msg, result.success ? "Event published." : (result.error || "Failed to publish."), result.success);
+      if (result.success) { e.target.reset(); clearEventPreview(); }
+    } catch (err) {
+      showMsg(msg, err.message || "Failed to publish.", false);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
+  });
+
+  // ---- Project ----
+  document.getElementById("project-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("project-msg");
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    try {
+      let imageUrl = "";
+      const fileInput = document.getElementById("p-image");
+      if (fileInput.files[0]) {
+        submitBtn.textContent = "Uploading image...";
+        imageUrl = await uploadImageIfSelected(fileInput);
+      }
+      submitBtn.textContent = "Publishing...";
+      const result = await callBackend("addProject", {
+        idToken,
+        projectName: document.getElementById("p-name").value.trim(),
+        authors: document.getElementById("p-authors").value.trim(),
+        description: document.getElementById("p-description").value.trim(),
+        link: document.getElementById("p-link").value.trim(),
+        imageUrl
+      });
+      showMsg(msg, result.success ? "Project published." : (result.error || "Failed to publish."), result.success);
+      if (result.success) { e.target.reset(); clearProjectPreview(); }
+    } catch (err) {
+      showMsg(msg, err.message || "Failed to publish.", false);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
   });
 </script>
 </body>
