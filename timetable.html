@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Timetable — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chuka Hub">
 </head>
 <body>
 
@@ -31,33 +41,21 @@
     <div class="field-label">Live — updated by department admin</div>
     <h1 style="font-size:2rem;">Class &amp; exam timetable</h1>
     <p class="lede">Public view. Members with reminders activated get an email for today's classes each morning, and for exams coming up in the next 48 hours.</p>
+    <label for="tt-class-filter" style="display:inline-block; margin-top:6px;">View class</label>
+    <select id="tt-class-filter" style="max-width:260px;"></select>
   </section>
 
   <section>
     <div class="panel">
       <h2 style="margin-bottom:4px;">Weekly class timetable</h2>
-      <p style="margin-top:0; font-size:14px;">Repeats every week — Monday to Saturday.</p>
-      <table id="class-table">
-        <thead>
-          <tr><th>Day</th><th>Unit code</th><th>Unit name</th><th>Time</th><th>Venue</th><th>Lecturer</th></tr>
-        </thead>
-        <tbody id="class-body">
-          <tr><td colspan="6">Loading...</td></tr>
-        </tbody>
-      </table>
+      <p style="margin-top:0; font-size:14px;">Repeats every week — Monday to Saturday. Grouped by class.</p>
+      <div id="class-table-container"><p>Loading...</p></div>
     </div>
 
     <div class="panel" style="margin-top:24px;">
       <h2 style="margin-bottom:4px;">Exam timetable</h2>
-      <p style="margin-top:0; font-size:14px;">Sorted by date.</p>
-      <table id="exam-table">
-        <thead>
-          <tr><th>Unit code</th><th>Unit name</th><th>Date</th><th>Time</th><th>Venue</th><th>Notes</th></tr>
-        </thead>
-        <tbody id="exam-body">
-          <tr><td colspan="6">Loading...</td></tr>
-        </tbody>
-      </table>
+      <p style="margin-top:0; font-size:14px;">Sorted by date. Grouped by class.</p>
+      <div id="exam-table-container"><p>Loading...</p></div>
     </div>
   </section>
 </main>
@@ -68,15 +66,27 @@
 
 <script src="app.js"></script>
 <script>
-  async function loadClassTimetable() {
-    const body = document.getElementById("class-body");
+  function classGroupTable(bucket, headHtml, rowHtml) {
+    return `
+      <h3 style="color:var(--ink); margin:18px 0 8px;">${bucket.label}</h3>
+      <table>
+        <thead><tr>${headHtml}</tr></thead>
+        <tbody>${bucket.rows.map(rowHtml).join("")}</tbody>
+      </table>
+    `;
+  }
+
+  async function loadClassTimetable(classFilter = "") {
+    const container = document.getElementById("class-table-container");
     try {
-      const result = await callBackend("getClassTimetable", {}, "GET");
-      if (!result.success || !result.rows || result.rows.length === 0) {
-        body.innerHTML = `<tr><td colspan="6">No class timetable published yet.</td></tr>`;
+      const result = await callBackend("getClassTimetable", { class: classFilter }, "GET");
+      const rows = (result.success && result.rows) ? result.rows : [];
+      if (rows.length === 0) {
+        container.innerHTML = `<p>No class timetable published yet${classFilter ? " for this class" : ""}.</p>`;
         return;
       }
-      body.innerHTML = result.rows.map(r => `
+      const head = `<th>Day</th><th>Unit code</th><th>Unit name</th><th>Time</th><th>Venue</th><th>Lecturer</th>`;
+      const row = r => `
         <tr>
           <td>${r.day || ""}</td>
           <td class="unit-code">${r.unitCode || ""}</td>
@@ -85,21 +95,24 @@
           <td>${r.venue || ""}</td>
           <td>${r.lecturer || ""}</td>
         </tr>
-      `).join("");
+      `;
+      container.innerHTML = groupByClass(rows).map(b => classGroupTable(b, head, row)).join("");
     } catch (err) {
-      body.innerHTML = `<tr><td colspan="6">Couldn't load the class timetable right now.</td></tr>`;
+      container.innerHTML = `<p>Couldn't load the class timetable right now.</p>`;
     }
   }
 
-  async function loadExamTimetable() {
-    const body = document.getElementById("exam-body");
+  async function loadExamTimetable(classFilter = "") {
+    const container = document.getElementById("exam-table-container");
     try {
-      const result = await callBackend("getTimetable", {}, "GET");
-      if (!result.success || !result.rows || result.rows.length === 0) {
-        body.innerHTML = `<tr><td colspan="6">No exam entries published yet.</td></tr>`;
+      const result = await callBackend("getTimetable", { class: classFilter }, "GET");
+      const rows = (result.success && result.rows) ? result.rows : [];
+      if (rows.length === 0) {
+        container.innerHTML = `<p>No exam entries published yet${classFilter ? " for this class" : ""}.</p>`;
         return;
       }
-      body.innerHTML = result.rows.map(r => `
+      const head = `<th>Unit code</th><th>Unit name</th><th>Date</th><th>Time</th><th>Venue</th><th>Notes</th>`;
+      const row = r => `
         <tr>
           <td class="unit-code">${r.unitCode || ""}</td>
           <td>${r.unitName || ""}</td>
@@ -108,12 +121,24 @@
           <td>${r.venue || ""}</td>
           <td>${r.notes || ""}</td>
         </tr>
-      `).join("");
+      `;
+      container.innerHTML = groupByClass(rows).map(b => classGroupTable(b, head, row)).join("");
     } catch (err) {
-      body.innerHTML = `<tr><td colspan="6">Couldn't load the exam timetable right now.</td></tr>`;
+      container.innerHTML = `<p>Couldn't load the exam timetable right now.</p>`;
     }
   }
 
+  async function initClassFilter() {
+    const classes = await fetchClasses();
+    const select = document.getElementById("tt-class-filter");
+    populateClassSelect(select, classes, "filter");
+    select.addEventListener("change", (e) => {
+      loadClassTimetable(e.target.value);
+      loadExamTimetable(e.target.value);
+    });
+  }
+
+  initClassFilter();
   loadClassTimetable();
   loadExamTimetable();
 </script>
