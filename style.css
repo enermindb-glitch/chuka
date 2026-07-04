@@ -346,27 +346,73 @@ tr:last-child td { border-bottom: none; }
 .feature h3 { font-size: 1.05rem; margin-bottom: 6px; }
 .feature p { color: rgba(237,242,251,0.75); font-size: 0.94rem; margin: 0; }
 
-.feature img {
-  aspect-ratio: 16 / 10;
+/* ---------- Personnel avatars ---------- */
+
+.avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
   object-fit: cover;
-  border-radius: var(--radius);
-  margin: -22px -22px 16px;
-  width: calc(100% + 44px);
+  background: #DCE3F0;
+  border: 2px solid var(--navy);
   display: block;
-  background: var(--navy-line);
+  margin-bottom: 12px;
 }
 
-.image-preview {
+.avatar-placeholder {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.contact-row {
+  font-size: 13px;
+  color: rgba(237,242,251,0.75);
+  margin: 2px 0;
+}
+
+/* ---------- Copy-link box ---------- */
+
+.copy-box {
+  display: flex;
+  gap: 8px;
   margin-top: 10px;
-  max-width: 100%;
-  max-height: 220px;
-  border-radius: var(--radius);
-  border: 1.5px solid #C4CDE0;
-  object-fit: cover;
-  display: block;
 }
 
-/* ---------- Footer ---------- */
+.copy-box input {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: #F3F6FC;
+}
+
+/* ---------- Group progress bar ---------- */
+
+.group-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: #DCE3F0;
+  overflow: hidden;
+  margin: 10px 0 4px;
+}
+
+.group-progress-fill {
+  height: 100%;
+  background: var(--amber);
+}
+
+.group-progress-fill.full {
+  background: var(--alert);
+}
 
 footer {
   border-top: 1px solid var(--navy-line);
