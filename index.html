@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chuka Eng Hub — Class reminders &amp; announcements</title>
+<meta name="description" content="Free registration for Chuka University Electrical &amp; Electronic Engineering students. Optional automatic class reminders, exam timetables, announcements and wellbeing check-ins.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="title-block">
+  <div class="title-block-inner">
+    <div class="mark">
+      <span class="drwg-no">DRWG-01</span>
+      <span class="name">Chuka Eng Hub</span>
+    </div>
+    <nav>
+      <a href="index.html" class="active">Register</a>
+      <a href="timetable.html">Timetable</a>
+      <a href="events.html">Events</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="field-label">Chuka University — Department of Electrical &amp; Electronic Engineering</div>
+    <h1>Never miss a class, a CAT, or an announcement again.</h1>
+    <p class="lede">
+      Free to join. Register once, and choose whether to switch on automatic
+      email reminders — built by an Electrical &amp; Electronic Engineering student, for Electrical &amp; Electronic Engineering students.
+    </p>
+
+    <div class="hero-specs">
+      <div><span class="k">Cost to register</span><span class="v">Free</span></div>
+      <div><span class="k">Reminders</span><span class="v">Optional, small fee</span></div>
+      <div><span class="k">Payment</span><span class="v">M-Pesa via Pesapal</span></div>
+    </div>
+  </section>
+
+  <section class="two-col">
+    <div>
+      <h2 style="color:var(--paper)">What you get</h2>
+      <div class="grid-3">
+        <div class="feature">
+          <span class="num">01</span>
+          <h3>Class &amp; exam reminders</h3>
+          <p>Automatic emails before classes and CATs, matched to your units.</p>
+        </div>
+        <div class="feature">
+          <span class="num">02</span>
+          <h3>Announcements</h3>
+          <p>Timetable changes, venue swaps, and department notices — the moment they're posted.</p>
+        </div>
+        <div class="feature">
+          <span class="num">03</span>
+          <h3>Wellbeing check-ins</h3>
+          <p>An occasional, no-pressure "how are you doing" — not about coursework, just you.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="register-panel">
+      <h2>Create your free account</h2>
+      <p>Takes under a minute. No payment required to join.</p>
+
+      <form id="register-form">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" required placeholder="e.g. Wanjiku Mwangi">
+
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" required placeholder="you@students.chuka.ac.ke">
+
+        <label for="regNumber">Registration number</label>
+        <input id="regNumber" name="regNumber" type="text" required placeholder="e.g. E123/1234/2023">
+
+        <label for="year">Year of study</label>
+        <input type="hidden" id="programme" name="programme" value="Electrical &amp; Electronic Engineering">
+        <select id="year" name="year" required>
+          <option value="" disabled selected>Select year</option>
+          <option value="First Year">First Year</option>
+          <option value="Second Year">Second Year</option>
+          <option value="Third Year">Third Year</option>
+          <option value="Fourth Year">Fourth Year</option>
+          <option value="Fifth Year">Fifth Year</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-block" id="register-btn">Register — it's free</button>
+        <div class="msg" id="register-msg"></div>
+      </form>
+
+      <div id="post-register" style="display:none; margin-top:24px; border-top:1px solid #DCE3F0; padding-top:20px;">
+        <p style="margin-top:0;"><strong>You're registered.</strong> Want automatic reminders too?</p>
+        <button class="btn btn-ghost btn-block" id="activate-btn">Activate reminders (optional, small fee)</button>
+        <p class="support-note">You can skip this — you'll still see the public timetable and events pages.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>Chuka Eng Hub is a student-run project, not an official university platform or a counseling service.</p>
+  <p class="support-note">If anything you're going through feels like more than you can carry alone, please reach out to Chuka University's Student Counseling Unit, or talk to someone you trust.</p>
+</footer>
+
+<script src="app.js"></script>
+<script>
+  const form = document.getElementById("register-form");
+  const msg = document.getElementById("register-msg");
+  const btn = document.getElementById("register-btn");
+  const postRegister = document.getElementById("post-register");
+  let registeredEmail = "";
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = "Registering...";
+
+    const payload = {
+      name: form.name.value.trim(),
+      email: form.email.value.trim().toLowerCase(),
+      regNumber: form.regNumber.value.trim(),
+      programme: form.programme.value.trim(),
+      year: form.year.value
+    };
+
+    try {
+      const result = await callBackend("register", payload);
+      if (result.success) {
+        showMsg(msg, "You're in! Check your email for confirmation.", true);
+        registeredEmail = payload.email;
+        postRegister.style.display = "block";
+        form.style.display = "none";
+      } else {
+        showMsg(msg, result.error || "Something went wrong. Try again.", false);
+      }
+    } catch (err) {
+      showMsg(msg, "Couldn't reach the server. Check your connection and try again.", false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Register — it's free";
+    }
+  });
+
+  document.getElementById("activate-btn").addEventListener("click", async () => {
+    const activateBtn = document.getElementById("activate-btn");
+    activateBtn.disabled = true;
+    activateBtn.textContent = "Redirecting to payment...";
+    try {
+      const result = await callBackend("initiatePayment", { email: registeredEmail });
+      if (result.success && result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        activateBtn.disabled = false;
+        activateBtn.textContent = "Activate reminders (optional, small fee)";
+        alert(result.error || "Couldn't start payment. Try again shortly.");
+      }
+    } catch (err) {
+      activateBtn.disabled = false;
+      activateBtn.textContent = "Activate reminders (optional, small fee)";
+      alert("Couldn't reach the server.");
+    }
+  });
+</script>
+</body>
+</html>
