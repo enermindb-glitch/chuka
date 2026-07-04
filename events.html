@@ -18,6 +18,7 @@
       <a href="index.html">Register</a>
       <a href="timetable.html">Timetable</a>
       <a href="events.html" class="active">Events</a>
+      <a href="projects.html">Projects</a>
       <a href="admin.html">Admin</a>
     </nav>
   </div>
@@ -43,6 +44,14 @@
 
 <script src="app.js"></script>
 <script>
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   async function loadEvents() {
     const grid = document.getElementById("events-grid");
     try {
@@ -53,10 +62,11 @@
       }
       grid.innerHTML = result.rows.map(r => `
         <div class="feature">
+          ${r.imageUrl ? `<img src="${escapeHtml(r.imageUrl)}" alt="${escapeHtml(r.eventName)}" loading="lazy" onerror="this.style.display='none'">` : ""}
           <span class="num mono">${formatDate(r.date)}${r.time ? " · " + r.time : ""}</span>
-          <h3>${r.eventName || ""}</h3>
-          <p>${r.description || ""}</p>
-          <p style="margin-top:8px; opacity:0.8;">${r.location ? "📍 " + r.location : ""}</p>
+          <h3>${escapeHtml(r.eventName)}</h3>
+          <p>${escapeHtml(r.description)}</p>
+          <p style="margin-top:8px; opacity:0.8;">${r.location ? "📍 " + escapeHtml(r.location) : ""}</p>
         </div>
       `).join("");
     } catch (err) {
