@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Events — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chuka Hub">
 </head>
 <body>
 
@@ -31,6 +41,8 @@
     <div class="field-label">Departmental &amp; student events</div>
     <h1 style="font-size:2rem;">Upcoming events</h1>
     <p class="lede">Workshops, guest talks, career fairs, and student activities.</p>
+    <label for="events-class-filter" style="display:inline-block; margin-top:6px;">View class</label>
+    <select id="events-class-filter" style="max-width:260px;"></select>
   </section>
 
   <section>
@@ -46,12 +58,12 @@
 
 <script src="app.js"></script>
 <script>
-  async function loadEvents() {
+  async function loadEvents(classFilter = "") {
     const grid = document.getElementById("events-grid");
     try {
-      const result = await callBackend("getEvents", {}, "GET");
+      const result = await callBackend("getEvents", { class: classFilter }, "GET");
       if (!result.success || !result.rows || result.rows.length === 0) {
-        grid.innerHTML = `<div class="feature"><p style="margin:0;">No events published yet — check back soon.</p></div>`;
+        grid.innerHTML = `<div class="feature"><p style="margin:0;">No events published yet${classFilter ? " for this class" : ""} — check back soon.</p></div>`;
         return;
       }
       grid.innerHTML = result.rows.map(r => `
@@ -60,12 +72,22 @@
           <h3>${r.eventName || ""}</h3>
           <p>${r.description || ""}</p>
           <p style="margin-top:8px; opacity:0.8;">${r.location ? "📍 " + r.location : ""}</p>
+          <p style="margin-top:8px; font-size:12px; color:var(--amber);">${r.className || "General / all classes"}</p>
         </div>
       `).join("");
     } catch (err) {
       grid.innerHTML = `<div class="feature"><p style="margin:0;">Couldn't load events right now.</p></div>`;
     }
   }
+
+  async function initEventsClassFilter() {
+    const classes = await fetchClasses();
+    const select = document.getElementById("events-class-filter");
+    populateClassSelect(select, classes, "filter");
+    select.addEventListener("change", (e) => loadEvents(e.target.value));
+  }
+
+  initEventsClassFilter();
   loadEvents();
 </script>
 </body>
