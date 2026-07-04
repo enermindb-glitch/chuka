@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -29,13 +28,22 @@
   <section id="signin-section" class="hero" style="padding-bottom:0;">
     <div class="field-label">Restricted area</div>
     <h1 style="font-size:2rem;">Admin sign-in</h1>
-    <p class="lede">Sign in with the Google account authorised as an admin.</p>
-    <div id="g_id_signin" style="margin-top:20px;"></div>
-    <div class="msg" id="signin-msg"></div>
+    <p class="lede">Enter the admin password to manage announcements, the exam timetable, and events.</p>
+
+    <div class="panel" style="max-width:420px; margin-top:20px;">
+      <form id="password-form">
+        <label for="admin-password">Password</label>
+        <input id="admin-password" type="password" required autocomplete="current-password">
+        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+        <div class="msg" id="signin-msg"></div>
+      </form>
+    </div>
   </section>
 
   <section id="admin-section" style="display:none;">
-    <p style="color:rgba(237,242,251,0.75);">Signed in as <strong id="admin-email" class="mono"></strong></p>
+    <p style="color:rgba(237,242,251,0.75);">Signed in as admin.
+      <button id="logout-btn" class="btn-ghost" style="border:none; text-decoration:underline; background:none; cursor:pointer; padding:0; color:inherit; font-family:inherit;">Sign out</button>
+    </p>
 
     <div class="two-col" style="align-items:stretch;">
 
@@ -118,37 +126,38 @@
 
 <script src="app.js"></script>
 <script>
-  /* ---- CONFIG: paste your Google OAuth Client ID (from Google Cloud Console) ---- */
-  const GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com";
+  let adminPassword = null;
 
-  let idToken = null;
+  // Restore session for this tab only (cleared on close) so a refresh
+  // doesn't force re-entering the password every time.
+  adminPassword = sessionStorage.getItem("cehAdminPw");
+  if (adminPassword) showAdminSection();
 
-  window.onload = () => {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      document.getElementById("g_id_signin"),
-      { theme: "outline", size: "large" }
-    );
-  };
-
-  async function handleCredentialResponse(response) {
-    idToken = response.credential;
+  document.getElementById("password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const msg = document.getElementById("signin-msg");
-    try {
-      const result = await callBackend("verifyAdmin", { idToken });
-      if (result.success) {
-        document.getElementById("signin-section").style.display = "none";
-        document.getElementById("admin-section").style.display = "block";
-        document.getElementById("admin-email").textContent = result.email;
-      } else {
-        showMsg(msg, result.error || "This account is not authorised as an admin.", false);
-      }
-    } catch (err) {
-      showMsg(msg, "Couldn't verify sign-in. Try again.", false);
+    const pw = document.getElementById("admin-password").value;
+    const result = await callBackend("verifyAdmin", { password: pw });
+    if (result.success) {
+      adminPassword = pw;
+      sessionStorage.setItem("cehAdminPw", pw);
+      showAdminSection();
+    } else {
+      showMsg(msg, result.error || "Incorrect password.", false);
     }
+  });
+
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    sessionStorage.removeItem("cehAdminPw");
+    adminPassword = null;
+    document.getElementById("admin-section").style.display = "none";
+    document.getElementById("signin-section").style.display = "block";
+    document.getElementById("admin-password").value = "";
+  });
+
+  function showAdminSection() {
+    document.getElementById("signin-section").style.display = "none";
+    document.getElementById("admin-section").style.display = "block";
   }
 
   // ---- Announcement ----
@@ -156,7 +165,7 @@
     e.preventDefault();
     const msg = document.getElementById("announcement-msg");
     const result = await callBackend("postAnnouncement", {
-      idToken,
+      password: adminPassword,
       title: document.getElementById("a-title").value.trim(),
       body: document.getElementById("a-body").value.trim()
     });
@@ -169,7 +178,7 @@
     e.preventDefault();
     const msg = document.getElementById("exam-msg");
     const result = await callBackend("addExamEntry", {
-      idToken,
+      password: adminPassword,
       unitCode: document.getElementById("e-code").value.trim(),
       unitName: document.getElementById("e-name").value.trim(),
       date: document.getElementById("e-date").value,
@@ -186,7 +195,7 @@
     e.preventDefault();
     const msg = document.getElementById("event-msg");
     const result = await callBackend("addEvent", {
-      idToken,
+      password: adminPassword,
       eventName: document.getElementById("ev-name").value.trim(),
       date: document.getElementById("ev-date").value,
       time: document.getElementById("ev-time").value,
