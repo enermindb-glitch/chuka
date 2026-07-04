@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Groups — Chuka Eng Hub</title>
+<title>People — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,8 +19,8 @@
       <a href="timetable.html">Timetable</a>
       <a href="events.html">Events</a>
       <a href="notes.html">Notes</a>
-      <a href="groups.html" class="active">Groups</a>
-      <a href="personnel.html">People</a>
+      <a href="groups.html">Groups</a>
+      <a href="personnel.html" class="active">People</a>
       <a href="admin.html">Admin</a>
     </nav>
   </div>
@@ -28,48 +28,22 @@
 
 <main class="wrap">
   <section class="hero" style="padding-bottom:0;">
-    <div class="field-label">Study &amp; project groups</div>
-    <h1 style="font-size:2rem;">Groups</h1>
-    <p class="lede">Start a group with a member limit, then share the join link — anyone with the link can join until it's full.</p>
+    <div class="field-label">Class leadership &amp; lecturers</div>
+    <h1 style="font-size:2rem;">People</h1>
+    <p class="lede">Who's who — class representatives and the lecturers teaching your units.</p>
   </section>
 
-  <section class="two-col">
-    <div class="panel">
-      <h2>Create a group</h2>
-      <form id="create-group-form">
-        <label for="g-name">Group name</label>
-        <input id="g-name" required type="text" placeholder="e.g. Circuit Theory Study Group">
-
-        <label for="g-description">Description</label>
-        <textarea id="g-description" placeholder="What's this group for?"></textarea>
-
-        <label for="g-max">Maximum members</label>
-        <input id="g-max" required type="number" min="2" max="500" placeholder="e.g. 10">
-
-        <label for="g-your-name">Your name</label>
-        <input id="g-your-name" required type="text" placeholder="e.g. Wanjiku Mwangi">
-
-        <label for="g-your-email">Your email</label>
-        <input id="g-your-email" required type="email" placeholder="you@students.chuka.ac.ke">
-
-        <button class="btn btn-primary btn-block" type="submit">Create group</button>
-        <div class="msg" id="create-msg"></div>
-      </form>
-
-      <div id="link-result" style="display:none; margin-top:20px; border-top:1px solid #DCE3F0; padding-top:18px;">
-        <p style="margin-top:0;"><strong>Group created!</strong> Share this link so others can join:</p>
-        <div class="copy-box">
-          <input id="join-link-output" type="text" readonly>
-          <button class="btn btn-ghost" id="copy-link-btn" type="button">Copy</button>
-        </div>
-      </div>
+  <section>
+    <h2 style="color:var(--paper)">Class leadership</h2>
+    <div class="grid-3" id="leadership-grid">
+      <p style="color:rgba(237,242,251,0.7);">Loading...</p>
     </div>
+  </section>
 
-    <div>
-      <h2 style="color:var(--paper)">Existing groups</h2>
-      <div id="groups-list">
-        <p style="color:rgba(237,242,251,0.7);">Loading groups...</p>
-      </div>
+  <section>
+    <h2 style="color:var(--paper)">Lecturers</h2>
+    <div class="grid-3" id="lecturers-grid">
+      <p style="color:rgba(237,242,251,0.7);">Loading...</p>
     </div>
   </section>
 </main>
@@ -80,73 +54,56 @@
 
 <script src="app.js"></script>
 <script>
-  document.getElementById("create-group-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById("create-msg");
-    const btn = e.target.querySelector("button[type=submit]");
-    btn.disabled = true;
-    btn.textContent = "Creating...";
+  function personCard(p) {
+    const imageHtml = p.photoUrl
+      ? `<img class="avatar" src="${p.photoUrl}" alt="${p.name}" onerror="handleAvatarError(this, '${(p.name || "?").replace(/'/g, "")}')">`
+      : `<div class="avatar-placeholder">${initials(p.name)}</div>`;
 
-    const result = await callBackend("createGroup", {
-      groupName: document.getElementById("g-name").value.trim(),
-      description: document.getElementById("g-description").value.trim(),
-      maxMembers: document.getElementById("g-max").value,
-      creatorName: document.getElementById("g-your-name").value.trim(),
-      creatorEmail: document.getElementById("g-your-email").value.trim()
-    });
+    return `
+      <div class="feature">
+        ${imageHtml}
+        <h3 style="margin-bottom:2px;">${p.name || ""}</h3>
+        <p style="margin:0 0 8px; color:var(--amber); font-size:13px; font-weight:600;">${p.role || ""}</p>
+        ${p.email ? `<p class="contact-row">✉️ <a href="mailto:${p.email}">${p.email}</a></p>` : ""}
+        ${p.phone ? `<p class="contact-row">📞 ${p.phone}</p>` : ""}
+        ${p.officeOrDetails ? `<p class="contact-row">${p.officeOrDetails}</p>` : ""}
+      </div>
+    `;
+  }
 
-    btn.disabled = false;
-    btn.textContent = "Create group";
+  function handleAvatarError(imgEl, name) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "avatar-placeholder";
+    placeholder.textContent = initials(name);
+    imgEl.replaceWith(placeholder);
+  }
 
-    if (result.success) {
-      showMsg(msg, "Group created — share the link below.", true);
-      document.getElementById("join-link-output").value = result.joinLink;
-      document.getElementById("link-result").style.display = "block";
-      e.target.reset();
-      loadGroups();
-    } else {
-      showMsg(msg, result.error || "Couldn't create the group.", false);
-    }
-  });
+  function initials(name) {
+    if (!name) return "?";
+    return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+  }
 
-  document.getElementById("copy-link-btn").addEventListener("click", () => {
-    const input = document.getElementById("join-link-output");
-    input.select();
-    navigator.clipboard.writeText(input.value).then(() => {
-      const btn = document.getElementById("copy-link-btn");
-      const original = btn.textContent;
-      btn.textContent = "Copied!";
-      setTimeout(() => btn.textContent = original, 1500);
-    });
-  });
-
-  async function loadGroups() {
-    const list = document.getElementById("groups-list");
+  async function loadPersonnel() {
+    const leadershipGrid = document.getElementById("leadership-grid");
+    const lecturersGrid = document.getElementById("lecturers-grid");
     try {
-      const result = await callBackend("getAllGroups", {}, "GET");
-      if (!result.success || !result.rows || result.rows.length === 0) {
-        list.innerHTML = `<p style="color:rgba(237,242,251,0.7);">No groups yet — be the first to create one.</p>`;
-        return;
-      }
-      list.innerHTML = result.rows.map(g => {
-        const pct = Math.min(100, Math.round((g.memberCount / g.maxMembers) * 100));
-        const full = g.memberCount >= g.maxMembers;
-        return `
-          <div class="feature" style="margin-bottom:14px;">
-            <h3>${g.groupName}</h3>
-            <p>${g.description || ""}</p>
-            <div class="group-progress"><div class="group-progress-fill ${full ? "full" : ""}" style="width:${pct}%;"></div></div>
-            <p style="margin:6px 0 12px; font-size:13px;">${g.memberCount} / ${g.maxMembers} members ${full ? "— full" : ""}</p>
-            ${full ? "" : `<a class="btn btn-primary" style="padding:8px 16px; font-size:13px;" href="join-group.html?token=${g.joinToken}">Join group</a>`}
-          </div>
-        `;
-      }).join("");
+      const result = await callBackend("getPersonnel", {}, "GET");
+      if (!result.success) throw new Error();
+
+      leadershipGrid.innerHTML = result.leadership.length
+        ? result.leadership.map(personCard).join("")
+        : `<p style="color:rgba(237,242,251,0.7);">No leadership entries added yet.</p>`;
+
+      lecturersGrid.innerHTML = result.lecturers.length
+        ? result.lecturers.map(personCard).join("")
+        : `<p style="color:rgba(237,242,251,0.7);">No lecturer entries added yet.</p>`;
     } catch (err) {
-      list.innerHTML = `<p style="color:rgba(237,242,251,0.7);">Couldn't load groups right now.</p>`;
+      leadershipGrid.innerHTML = `<p style="color:rgba(237,242,251,0.7);">Couldn't load this right now.</p>`;
+      lecturersGrid.innerHTML = "";
     }
   }
 
-  loadGroups();
+  loadPersonnel();
 </script>
 </body>
 </html>
