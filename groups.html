@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Groups — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chuka Hub">
 </head>
 <body>
 
@@ -37,6 +47,9 @@
     <div class="panel">
       <h2>Create a group</h2>
       <form id="create-group-form">
+        <label for="g-class">Class (optional)</label>
+        <select id="g-class"></select>
+
         <label for="g-name">Group name</label>
         <input id="g-name" required type="text" placeholder="e.g. Circuit Theory Study Group">
 
@@ -66,8 +79,11 @@
     </div>
 
     <div>
-      <h2 style="color:var(--paper)">Existing groups</h2>
-      <div id="groups-list">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <h2 style="color:var(--paper); margin:0;">Existing groups</h2>
+        <select id="groups-class-filter" style="max-width:220px; margin:0;"></select>
+      </div>
+      <div id="groups-list" style="margin-top:12px;">
         <p style="color:rgba(237,242,251,0.7);">Loading groups...</p>
       </div>
     </div>
@@ -88,6 +104,7 @@
     btn.textContent = "Creating...";
 
     const result = await callBackend("createGroup", {
+      className: document.getElementById("g-class").value,
       groupName: document.getElementById("g-name").value.trim(),
       description: document.getElementById("g-description").value.trim(),
       maxMembers: document.getElementById("g-max").value,
@@ -120,32 +137,51 @@
     });
   });
 
-  async function loadGroups() {
+  function groupCard(g) {
+    const pct = Math.min(100, Math.round((g.memberCount / g.maxMembers) * 100));
+    const full = g.memberCount >= g.maxMembers;
+    return `
+      <div class="feature" style="margin-bottom:14px;">
+        <h3>${g.groupName}</h3>
+        <p>${g.description || ""}</p>
+        <div class="group-progress"><div class="group-progress-fill ${full ? "full" : ""}" style="width:${pct}%;"></div></div>
+        <p style="margin:6px 0 12px; font-size:13px;">${g.memberCount} / ${g.maxMembers} members ${full ? "— full" : ""}</p>
+        ${full ? "" : `<a class="btn btn-primary" style="padding:8px 16px; font-size:13px;" href="join-group.html?token=${g.joinToken}">Join group</a>`}
+      </div>
+    `;
+  }
+
+  async function loadGroups(classFilter = "") {
     const list = document.getElementById("groups-list");
     try {
-      const result = await callBackend("getAllGroups", {}, "GET");
-      if (!result.success || !result.rows || result.rows.length === 0) {
-        list.innerHTML = `<p style="color:rgba(237,242,251,0.7);">No groups yet — be the first to create one.</p>`;
+      const result = await callBackend("getAllGroups", { class: classFilter }, "GET");
+      const rows = (result.success && result.rows) ? result.rows : [];
+      if (rows.length === 0) {
+        list.innerHTML = `<p style="color:rgba(237,242,251,0.7);">No groups yet${classFilter ? " for this class" : ""} — be the first to create one.</p>`;
         return;
       }
-      list.innerHTML = result.rows.map(g => {
-        const pct = Math.min(100, Math.round((g.memberCount / g.maxMembers) * 100));
-        const full = g.memberCount >= g.maxMembers;
-        return `
-          <div class="feature" style="margin-bottom:14px;">
-            <h3>${g.groupName}</h3>
-            <p>${g.description || ""}</p>
-            <div class="group-progress"><div class="group-progress-fill ${full ? "full" : ""}" style="width:${pct}%;"></div></div>
-            <p style="margin:6px 0 12px; font-size:13px;">${g.memberCount} / ${g.maxMembers} members ${full ? "— full" : ""}</p>
-            ${full ? "" : `<a class="btn btn-primary" style="padding:8px 16px; font-size:13px;" href="join-group.html?token=${g.joinToken}">Join group</a>`}
-          </div>
-        `;
-      }).join("");
+
+      if (classFilter) {
+        list.innerHTML = rows.map(groupCard).join("");
+      } else {
+        list.innerHTML = groupByClass(rows, "Open to everyone").map(bucket => `
+          <h3 style="color:var(--paper); margin:18px 0 8px;">${bucket.label}</h3>
+          ${bucket.rows.map(groupCard).join("")}
+        `).join("");
+      }
     } catch (err) {
       list.innerHTML = `<p style="color:rgba(237,242,251,0.7);">Couldn't load groups right now.</p>`;
     }
   }
 
+  async function initClassControls() {
+    const classes = await fetchClasses();
+    populateClassSelect(document.getElementById("g-class"), classes, "optional");
+    populateClassSelect(document.getElementById("groups-class-filter"), classes, "filter");
+    document.getElementById("groups-class-filter").addEventListener("change", (e) => loadGroups(e.target.value));
+  }
+
+  initClassControls();
   loadGroups();
 </script>
 </body>
