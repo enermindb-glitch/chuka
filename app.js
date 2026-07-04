@@ -6,7 +6,7 @@
    3. Every page includes this file before its own inline script.
    ========================================================================== */
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxh234t6NXNZ530IjgMA-9YVEsBuHzebJaxp5mkS33DjkmZUJkEX2BAB7WHJPRDNZQn/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyi9Vx-1WUfC4uTPY2GgMUP3lX2rPlIEdVbPNfoUqjiRhMxwIhZ6yOht--S4GoqbS9U/exec";
 
 /**
  * Calls the Apps Script backend.
