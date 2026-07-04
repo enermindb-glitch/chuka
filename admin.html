@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Chuka Eng Hub</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chuka Hub">
 </head>
 <body>
 
@@ -48,6 +58,24 @@
       <button id="logout-btn" class="btn-ghost" style="border:none; text-decoration:underline; background:none; cursor:pointer; padding:0; color:inherit; font-family:inherit;">Sign out</button>
     </p>
 
+    <div class="panel" style="margin-top:20px;">
+      <h2 style="margin-bottom:4px;">Manage classes</h2>
+      <p style="margin-top:0; font-size:14px;">Add each class (e.g. "EEE Y2A", "EEE Y3B") once here — it then shows
+        up as an option everywhere below: the weekly timetable, exam entries, events, groups, and the
+        leadership/lecturer directory.</p>
+      <form id="class-add-form" class="two-col" style="align-items:end;">
+        <div>
+          <label for="cls-name">Class name</label>
+          <input id="cls-name" required type="text" placeholder="e.g. EEE Y2A">
+        </div>
+        <div>
+          <button class="btn btn-primary" type="submit" style="margin-top:22px;">Add class</button>
+        </div>
+      </form>
+      <div class="msg" id="class-add-msg"></div>
+      <div id="classes-list" style="margin-top:14px; font-size:14px; color:var(--ink-soft);">Loading classes...</div>
+    </div>
+
     <div class="grid-3" style="align-items:stretch; margin-top:24px;">
 
       <div class="panel">
@@ -68,6 +96,9 @@
         <h2>Add class timetable entry</h2>
         <p style="margin-top:0; font-size:13px;">Repeats weekly on the selected day.</p>
         <form id="class-form">
+          <label for="c-class">Class</label>
+          <select id="c-class" required></select>
+
           <label for="c-day">Day</label>
           <select id="c-day" required>
             <option value="" disabled selected>Select day</option>
@@ -102,6 +133,9 @@
       <div class="panel">
         <h2>Add exam timetable entry</h2>
         <form id="exam-form">
+          <label for="e-class">Class (optional)</label>
+          <select id="e-class"></select>
+
           <label for="e-code">Unit code</label>
           <input id="e-code" required type="text" placeholder="e.g. EEE 2201">
 
@@ -132,6 +166,9 @@
       <form id="event-form">
         <div class="two-col">
           <div>
+            <label for="ev-class">Class (optional)</label>
+            <select id="ev-class"></select>
+
             <label for="ev-name">Event name</label>
             <input id="ev-name" required type="text" placeholder="e.g. Engineering Career Fair">
 
@@ -198,6 +235,9 @@
       <form id="personnel-form">
         <div class="two-col">
           <div>
+            <label for="p-class">Class (optional)</label>
+            <select id="p-class"></select>
+
             <label for="p-name">Name</label>
             <input id="p-name" required type="text" placeholder="e.g. Dr. Kamau">
 
@@ -267,7 +307,37 @@
   function showAdminSection() {
     document.getElementById("signin-section").style.display = "none";
     document.getElementById("admin-section").style.display = "block";
+    refreshClasses();
   }
+
+  // ---- Classes ----
+  async function refreshClasses() {
+    const classes = await fetchClasses();
+
+    populateClassSelect(document.getElementById("c-class"), classes, "require");
+    populateClassSelect(document.getElementById("e-class"), classes, "optional");
+    populateClassSelect(document.getElementById("ev-class"), classes, "optional");
+    populateClassSelect(document.getElementById("p-class"), classes, "optional");
+
+    const list = document.getElementById("classes-list");
+    list.innerHTML = classes.length
+      ? classes.map(c => `<span style="display:inline-block; background:rgba(11,37,69,0.06); border-radius:999px; padding:4px 12px; margin:0 6px 6px 0;">${c}</span>`).join("")
+      : "No classes added yet — add the first one above.";
+  }
+
+  document.getElementById("class-add-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("class-add-msg");
+    const result = await callBackend("addClass", {
+      password: adminPassword,
+      className: document.getElementById("cls-name").value.trim()
+    });
+    showMsg(msg, result.success ? "Class added." : (result.error || "Failed to add."), result.success);
+    if (result.success) {
+      e.target.reset();
+      refreshClasses();
+    }
+  });
 
   // ---- Announcement ----
   document.getElementById("announcement-form").addEventListener("submit", async (e) => {
@@ -288,6 +358,7 @@
     const msg = document.getElementById("class-msg");
     const result = await callBackend("addClassEntry", {
       password: adminPassword,
+      className: document.getElementById("c-class").value,
       day: document.getElementById("c-day").value,
       unitCode: document.getElementById("c-code").value.trim(),
       unitName: document.getElementById("c-name").value.trim(),
@@ -305,6 +376,7 @@
     const msg = document.getElementById("exam-msg");
     const result = await callBackend("addExamEntry", {
       password: adminPassword,
+      className: document.getElementById("e-class").value,
       unitCode: document.getElementById("e-code").value.trim(),
       unitName: document.getElementById("e-name").value.trim(),
       date: document.getElementById("e-date").value,
@@ -322,6 +394,7 @@
     const msg = document.getElementById("event-msg");
     const result = await callBackend("addEvent", {
       password: adminPassword,
+      className: document.getElementById("ev-class").value,
       eventName: document.getElementById("ev-name").value.trim(),
       date: document.getElementById("ev-date").value,
       time: document.getElementById("ev-time").value,
@@ -355,6 +428,7 @@
     const msg = document.getElementById("personnel-msg");
     const result = await callBackend("addPersonnel", {
       password: adminPassword,
+      className: document.getElementById("p-class").value,
       name: document.getElementById("p-name").value.trim(),
       role: document.getElementById("p-role").value.trim(),
       category: document.getElementById("p-category").value,
